@@ -1,0 +1,76 @@
+#!/usr/bin/python
+
+import subprocess
+import urllib2
+import json 
+import os 
+import argparse
+
+C_FLAG = 0
+
+ERRMSG ="""\n\nThere was a problem with your request.  Did you try to lengthen a long URL or shorten.
+a short one?  Maybe the Google API is broken?  There are several options and only one error 
+message.  Try gsurl -h for help and options.\n\n"""
+
+
+#	This method will shorten a URL.
+def getShortUrl(_url):
+	try:
+		req = urllib2.Request('https://www.googleapis.com/urlshortener/v1/url')
+		req.add_header("Content-Type","application/json")
+		req.add_data('{"longUrl": "'+_url+'"}')
+		res = urllib2.urlopen(req)
+
+		result = json.load(res)
+	
+		for key,value in result.iteritems():
+			print key+"\t\t"+value
+	
+		if(C_FLAG):
+			os.system("echo "+result["id"]+" | pbcopy")
+	except:
+		print ERRMSG
+
+#	This method lengthens an already shortened URL.
+def getLongUrl(_url):
+	try:
+		request = urllib2.Request('https://www.googleapis.com/urlshortener/v1/url?shortUrl='+_url)	
+		res = urllib2.urlopen(request)
+
+		result = json.load(res)
+
+		for key,value in result.iteritems():
+			print key+"\t\t"+value
+
+		if(C_FLAG):
+			os.system("echo "+result["longUrl"]+" | pbcopy")
+        
+	except:
+		print ERRMSG
+	
+
+parser = argparse.ArgumentParser(description = 'Process a Google URL request.')
+
+#   This makes the shortening and lengthening arguments mutually exclusive.
+group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument('-s',action='store_true',help='shorten a url.')
+group.add_argument('-l',action='store_true', help='lengthen a url.')
+
+#   We will require the user to enter a URL.
+parser.add_argument('-u',required=True, help='This is the URL flag.' );
+
+#   It is completely optional to copy the response URL to the clipboard.
+#   As a note, this option only works in OS X.
+parser.add_argument('-c',action='store_true',help='this option will copy your response url to the clipboard.');
+
+#   Parse and handle the Args...
+args = parser.parse_args()
+
+if args.u:
+	url = args.u
+if args.c:
+	C_FLAG = True
+if args.l:
+	getLongUrl(url);
+if args.s:
+	getShortUrl(url);
